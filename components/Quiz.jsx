@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Modal from 'react-native-modal';
 import topics from '../constants/quiz.js';
 
@@ -8,7 +9,7 @@ const Quiz = ({ topic, difficulty, navigation }) => {
   const [answered, setAnswered] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [correctAnswer, setCorrectAnswer] = useState(null);
-  const [incorrectAnswers, setIncorrectAnswers] = useState(maxIncorrectAnswers);
+  const [incorrectAnswers, setIncorrectAnswers] = useState(3);
   const [finished, setFinished] = useState(false);
   const [timeLeft, setTimeLeft] = useState(difficulty === 'Easy' ? 90 : 60);
   const [score, setScore] = useState(0);
@@ -20,7 +21,6 @@ const Quiz = ({ topic, difficulty, navigation }) => {
   const [currentTopicIndex, setCurrentTopicIndex] = useState(0);
   const [hintUsed, setHintUsed] = useState(false);
   const [hintCount, setHintCount] = useState(0);
-  const maxIncorrectAnswers = 3;
 
   const timerRef = useRef(null);
 
@@ -50,57 +50,75 @@ const Quiz = ({ topic, difficulty, navigation }) => {
     }, 1000);
   };
 
-  const finishQuiz = () => {
+  const finishQuiz = async () => {
+    if (finished) return;
+
     clearInterval(timerRef.current);
     const totalTime = difficulty === 'Easy' ? 90 : 60;
-    const sessionTimeTaken = totalTime - timeLeft;
-  
+    const timeTaken = totalTime - timeLeft;
+
     if (difficulty === 'Hard') {
       if (sessionCount === 0) {
-        setTotalTimeTaken(sessionTimeTaken);
+        setTotalTimeTaken(timeTaken);
       } else {
-        setTotalTimeTaken(prevTotalTimeTaken => prevTotalTimeTaken + sessionTimeTaken);
+        setTotalTimeTaken(prevTotalTimeTaken => prevTotalTimeTaken + timeTaken);
       }
     } else {
-      setTimeTaken(totalTime - timeLeft);
+      setTimeTaken(timeTaken);
     }
-  
+
     setFinished(true);
+
+    try {
+      const key = difficulty === 'Hard' ? 'HardMode' : 'EasyMode';
+      const data = await AsyncStorage.getItem(key);
+      const parsedData = data ? JSON.parse(data) : { score: 0, timeTaken: 0 };
+
+      if (parsedData.score < score) {
+        parsedData.score = score;
+      }
+      if (parsedData.timeTaken === 0 || parsedData.timeTaken > timeTaken) {
+        parsedData.timeTaken = timeTaken;
+      }
+
+      await AsyncStorage.setItem(key, JSON.stringify(parsedData));
+      console.log(`${difficulty} mode results saved${topic?.name ? ` for ${topic?.name}` : ''}: score ${score}, time taken ${timeTaken} seconds`);
+    } catch (error) {
+      console.error('Error saving data to async storage:', error);
+    }
   };
-  
 
   const handleAnswer = (answer) => {
     if (answered || finished) return;
-  
+
     const currentTimer = timeLeft;
     setAnswered(true);
     setSelectedAnswer(answer);
     const isCorrect = answer === questions[currentQuestion]?.answer;
     setCorrectAnswer(isCorrect);
-  
+
     if (isCorrect) {
       const updatedScore = score + 10;
       setScore(updatedScore);
-  
+
       if (difficulty === 'Hard' && updatedScore > 0 && updatedScore % 100 === 0) {
         setTimeLeft(60);
         setTotalTimeTaken(prevTotalTimeTaken => prevTotalTimeTaken + (currentTimer - 60));
         setSessionCount(prevSessionCount => prevSessionCount + 1);
       }
-  
-      // Do not update incorrectAnswers on correct answer
+
     } else {
       if (difficulty === 'Hard') {
         setIncorrectAnswers(prev => {
-          const newCount = Math.max(prev - 1, 0); // Decrease but ensure it does not go below 0
+          const newCount = Math.max(prev - 1, 0);
           if (newCount === 0) {
-            finishQuiz(); // End quiz if no chances are left
+            finishQuiz();
           }
           return newCount;
         });
       }
     }
-  
+
     setTimeout(() => {
       setAnswered(false);
       setSelectedAnswer(null);
@@ -112,22 +130,19 @@ const Quiz = ({ topic, difficulty, navigation }) => {
       }
     }, 1000);
   };
-  
-  
-    
 
   const handleHint = () => {
     if (score > 0 && !hintUsed && (difficulty === 'Hard' || hintCount < 2)) {
       setScore(score - 10);
       setHintUsed(true);
       setHintCount(hintCount + 1);
-   
+
       if (questions[currentQuestion]?.answer === true) {
         setSelectedAnswer(false);
       } else {
         setSelectedAnswer(true);
       }
-    }   
+    }
   };
 
   const handleTryAgain = () => {
@@ -140,10 +155,10 @@ const Quiz = ({ topic, difficulty, navigation }) => {
     setTimeTaken(0);
     setHintUsed(false);
     setSessionCount(0);
-    setIncorrectAnswers(maxIncorrectAnswers);
+    setIncorrectAnswers(3);
     startTimer();
   };
-  
+
   const handleNextTopic = () => {
     clearInterval(timerRef.current);
     const nextTopicIndex = (currentTopicIndex + 1) % topics.length;
@@ -156,7 +171,7 @@ const Quiz = ({ topic, difficulty, navigation }) => {
     setTimeTaken(0);
     setHintUsed(false);
     setSessionCount(0);
-    setIncorrectAnswers(maxIncorrectAnswers);
+    setIncorrectAnswers(3);
     startTimer();
   };
 
@@ -182,24 +197,24 @@ const Quiz = ({ topic, difficulty, navigation }) => {
     <View style={styles.container}>
       <Text style={styles.title}>{difficulty === 'Easy' ? topics[currentTopicIndex]?.name : 'Quiz'}</Text>
       {!finished && (
-        <View style={{width: "100%"}}>
-         {difficulty === 'Hard' && (
+        <View style={{ width: "100%" }}>
+          {difficulty === 'Hard' && (
             <Text style={styles.chances}>Chances Remaining: {incorrectAnswers}</Text>
-         )}
-         <View style={styles.resultsPanel}>
-          <Text style={styles.score}>Score: {score}</Text>
-          <Text style={styles.timer}>Time left: {Math.floor(timeLeft / 60)}:{('0' + (timeLeft % 60)).slice(-2)}</Text>
-          <TouchableOpacity
-            style={[
+          )}
+          <View style={styles.resultsPanel}>
+            <Text style={styles.score}>Score: {score}</Text>
+            <Text style={styles.timer}>Time left: {Math.floor(timeLeft / 60)}:{('0' + (timeLeft % 60)).slice(-2)}</Text>
+            <TouchableOpacity
+              style={[
                 styles.hintButton,
                 (score <= 0 || hintUsed || (difficulty === 'Easy' && hintCount >= 2)) && styles.disabledHint,
-                ]}
-                onPress={handleHint}
-                disabled={score <= 0 || hintUsed || (difficulty === 'Easy' && hintCount >= 2)}
-          >
-            <Text style={styles.hintText}>Hint</Text>
-          </TouchableOpacity>
-         </View>
+              ]}
+              onPress={handleHint}
+              disabled={score <= 0 || hintUsed || (difficulty === 'Easy' && hintCount >= 2)}
+            >
+              <Text style={styles.hintText}>Hint</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
       {finished ? (
