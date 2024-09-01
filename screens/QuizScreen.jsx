@@ -7,7 +7,7 @@ const QuizScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView>
-      <Quiz topic={topic} difficulty={difficulty} navigation={navigation} />
+      <Quiz topic={topic} difficulty={difficulty} navigation={navigation}/>
     </SafeAreaView>
   );
 };
