@@ -23,6 +23,8 @@ target 'lugano' do
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
+  # pod 'react-native-svg', :path => '../node_modules/react-native-svg'
+
   target 'luganoTests' do
     inherit! :complete
     # Pods for testing
