@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ImageBackground } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Modal from 'react-native-modal';
 import topics from '../constants/quiz.js';
@@ -29,12 +29,11 @@ const Quiz = ({ topic, difficulty, navigation }) => {
       const allQuestions = topics.flatMap(t => t.questions.map(q => ({ ...q, topic: t })));
       setQuestions(shuffleArray(allQuestions));
     } else {
-      const currentTopic = topics[currentTopicIndex];
-      setQuestions(currentTopic ? currentTopic.questions.map(q => ({ ...q, topic: currentTopic })) : []);
+      setQuestions(topic ? topic.questions.map(q => ({ ...q, topic: topic })) : []);
     }
     startTimer();
     return () => clearInterval(timerRef.current);
-  }, [difficulty, currentTopicIndex]);
+  }, [difficulty, topic]);
 
   useEffect(() => {
     if (timeLeft <= 0 || finished) {
@@ -81,7 +80,6 @@ const Quiz = ({ topic, difficulty, navigation }) => {
         parsedData.timeTaken = timeTaken;
       }
 
-      await AsyncStorage.setItem(key, JSON.stringify(parsedData));
       console.log(`${difficulty} mode results saved${topic?.name ? ` for ${topic?.name}` : ''}: score ${score}, time taken ${timeTaken} seconds`);
     } catch (error) {
       console.error('Error saving data to async storage:', error);
@@ -194,8 +192,16 @@ const Quiz = ({ topic, difficulty, navigation }) => {
   };
 
   return (
+    <View style={{width: "100%", height: "100%"}}>
+    {difficulty === 'Easy' ? (
+      <ImageBackground
+        source={{uri: topic.image}}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      >
+        <View style={styles.overlay}>
     <View style={styles.container}>
-      <Text style={styles.title}>{difficulty === 'Easy' ? topics[currentTopicIndex]?.name : 'Quiz'}</Text>
+      <Text style={styles.title}>{difficulty === 'Easy' ? topic?.name : 'Quiz'}</Text>
       {!finished && (
         <View style={{ width: "100%" }}>
           {difficulty === 'Hard' && (
@@ -286,39 +292,161 @@ const Quiz = ({ topic, difficulty, navigation }) => {
         </>
       )}
     </View>
+    </View>
+      </ImageBackground>
+    ) : (
+      <ImageBackground
+        source={{uri: '/Users/veronika/Documents/GitHub/ios-quiz-app-01/lugano/quiz-images/image-hard.jpg'}}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      >
+        <View style={styles.overlay}>
+      <View style={styles.container}>
+      <Text style={styles.title}>{difficulty === 'Easy' ? topic?.name : 'Quiz'}</Text>
+      {!finished && (
+        <View style={{ width: "100%" }}>
+          {difficulty === 'Hard' && (
+            <Text style={styles.chances}>Chances Remaining: {incorrectAnswers}</Text>
+          )}
+          <View style={styles.resultsPanel}>
+            <Text style={styles.score}>Score: {score}</Text>
+            <Text style={styles.timer}>Time left: {Math.floor(timeLeft / 60)}:{('0' + (timeLeft % 60)).slice(-2)}</Text>
+            <TouchableOpacity
+              style={[
+                styles.hintButton,
+                (score <= 0 || hintUsed || (difficulty === 'Easy' && hintCount >= 2)) && styles.disabledHint,
+              ]}
+              onPress={handleHint}
+              disabled={score <= 0 || hintUsed || (difficulty === 'Easy' && hintCount >= 2)}
+            >
+              <Text style={styles.hintText}>Hint</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+      {finished ? (
+        <View style={styles.finish}>
+          <Text style={styles.finishText}>Quiz finished!</Text>
+          <Text style={styles.score}>Final Score: {score}</Text>
+          <Text style={styles.timeTakenHard}>Total Time taken: {difficulty === 'Hard' ? totalTimeTaken : timeTaken} seconds</Text>
+          <TouchableOpacity style={styles.tryAgain} onPress={handleTryAgain}>
+            <Text style={styles.tryAgainText}>Try again</Text>
+          </TouchableOpacity>
+          {difficulty === 'Easy' && (
+            <View style={styles.easyModeBtns}>
+              <TouchableOpacity style={styles.nextTopic} onPress={handleNextTopic}>
+                <Text style={styles.nextTopicText}>Next Topic</Text>
+              </TouchableOpacity>          
+              <TouchableOpacity
+                style={styles.showFact}
+                onPress={() => setModalVisible(true)}
+              >
+                <Text style={styles.showFactText}>Topic Fact</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          <TouchableOpacity style={styles.backToMenu} onPress={() => navigation.navigate('MainMenu')}>
+            <Text style={styles.backToMenuText}>Menu</Text>
+          </TouchableOpacity>
+          <Modal
+            transparent={true}
+            animationType="slide"
+            visible={modalVisible}
+            onRequestClose={() => setModalVisible(false)}
+          >
+            <View style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalText}>{topic?.fact || 'No fact available'}</Text>
+                <TouchableOpacity
+                  style={styles.modalButton}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text style={styles.modalButtonText}>Close</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+        </View>
+      ) : (
+        <>
+          {questions.length > 0 ? (
+            <>
+              <Text style={styles.questionHard}>{questions[currentQuestion]?.question}</Text>
+              <View style={styles.answers}>
+                <TouchableOpacity
+                  style={[styles.answer, getAnswerStyle(true)]}
+                  onPress={() => handleAnswer(true)}
+                >
+                  <Text style={styles.answerText}>True</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.answer, getAnswerStyle(false)]}
+                  onPress={() => handleAnswer(false)}
+                >
+                  <Text style={styles.answerText}>False</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          ) : (
+            <Text style={styles.questionHard}>No questions available</Text>
+          )}
+        </>
+      )}
+    </View>
+    </View>
+    </ImageBackground>
+    )}
+    </View>
   );
 };
 
-
 const styles = StyleSheet.create({
+  backgroundImage: {
+    width: '100%',
+    height: '100%',
+    flex: 1,
+  },
+  
+  overlay: {
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    width: '100%',
+    height: '100%',
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   container: {
     height: "100%",
     width: "100%",
     padding: 30,
     alignItems: "center",
+    flex: 1,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20
+    marginBottom: 20,
+    color: "white"
   },
   resultsPanel: {
     width: "100%",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10
+    marginBottom: 50,
   },
   chances: {
     fontSize: 16,
-    color: 'red',
+    color: 'white',
     marginBottom: 10,
   },
   score: {
     fontSize: 18,
+    color: 'white',
   },
   timer: {
     fontSize: 18,
+    color: 'white',
   },
   hintButton: {
     backgroundColor: '#f0ad4e',
@@ -334,22 +462,24 @@ const styles = StyleSheet.create({
   },
   question: {
     fontSize: 18,
-    marginBottom: 280,
+    color: 'white',
+    height: 320
   },
   answers: {
     width: "100%",
-    alignItems: "center"
+    alignItems: "center",
   },
   answer: {
     width: "100%",
     padding: 15,
     borderRadius: 20,
     borderWidth: 1,
-    marginBottom: 10
+    marginBottom: 10,
+    color: 'white',
   },
   defaultAnswer: {
     borderColor: '#ccc',
-    backgroundColor: 'white',
+    backgroundColor: 'transparent',
   },
   correct: {
     borderColor: '#64c63a',
@@ -362,21 +492,22 @@ const styles = StyleSheet.create({
   answerText: {
     fontSize: 18,
     textAlign: 'center',
-    color: 'black'
+    color: 'white',
   },
   finish: {
     height: "100%",
-    width: "100%"
+    width: "100%",
   },
   finishText: {
     fontSize: 20,
-    marginBottom: 150
+    marginBottom: 150,
+    color: 'white',
   },
   tryAgain: {
     backgroundColor: '#4CAF50',
     padding: 15,
     borderRadius: 20,
-    marginTop: 20,
+    marginTop: 20
   },
   tryAgainText: {
     fontSize: 18,
@@ -450,6 +581,21 @@ const styles = StyleSheet.create({
   modalButtonText: {
     fontSize: 16,
     color: 'white',
+  },
+  timeTaken: {
+    color: "white",
+    fontSize: 18,
+    marginBottom: 40
+  },
+  timeTakenHard: {
+    color: "white",
+    fontSize: 18,
+    marginBottom: 170
+  },
+  questionHard: {
+    fontSize: 18,
+    color: 'white',
+    height: 300
   },
 });
 

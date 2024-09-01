@@ -43,7 +43,8 @@ const topics = [
             answer: true,
           },
         ],
-        fact: "Lugano is located on the shores of the eponymous lake, which not only gives the city its picturesque appearance but also plays a key role in its ecosystem. Lake Lugano stretches across both Swiss and Italian territories. Around the lake are scenic parks and green areas, as well as majestic mountains like Monte Brè and Monte San Salvatore, offering stunning views and opportunities for outdoor activities."
+        fact: "Lugano is located on the shores of the eponymous lake, which not only gives the city its picturesque appearance but also plays a key role in its ecosystem. Lake Lugano stretches across both Swiss and Italian territories. Around the lake are scenic parks and green areas, as well as majestic mountains like Monte Brè and Monte San Salvatore, offering stunning views and opportunities for outdoor activities.",
+        image: '/Users/veronika/Documents/GitHub/ios-quiz-app-01/lugano/quiz-images/image1.jpg'
       },
       {
         name: "History",
@@ -89,7 +90,8 @@ const topics = [
             answer: true,
           },
         ],
-        fact: "In the early 16th century, Lugano was a strategic trading and military post. The city was initially part of the Duchy of Milan and then joined the Swiss Confederation in 1513. This transition was a significant step in strengthening Switzerland’s position in the region and contributed to Lugano's growth as a trading and cultural hub."
+        fact: "In the early 16th century, Lugano was a strategic trading and military post. The city was initially part of the Duchy of Milan and then joined the Swiss Confederation in 1513. This transition was a significant step in strengthening Switzerland’s position in the region and contributed to Lugano's growth as a trading and cultural hub.",
+        image: '/Users/veronika/Documents/GitHub/ios-quiz-app-01/lugano/quiz-images/image2.jpg'
       },
       {
         name: "Culture and Art",
@@ -135,7 +137,8 @@ const topics = [
             answer: true,
           },
         ],
-        fact: 'Lugano is renowned for its cultural events, with one of the most famous being the "Festa della Madonna". Held every August, this festival attracts thousands of tourists with its lively performances, street parades, and traditional Italian dishes. During this time, the city is filled with music, art, and joy, making its cultural life particularly vibrant.'
+        fact: 'Lugano is renowned for its cultural events, with one of the most famous being the "Festa della Madonna". Held every August, this festival attracts thousands of tourists with its lively performances, street parades, and traditional Italian dishes. During this time, the city is filled with music, art, and joy, making its cultural life particularly vibrant.',
+        image: '/Users/veronika/Documents/GitHub/ios-quiz-app-01/lugano/quiz-images/image3.jpg'
       },
       {
         name: "Economy and Business",
@@ -181,7 +184,8 @@ const topics = [
             answer: true,
           },
         ],
-        fact: "Lugano became a financial center of Switzerland due to its stable economic environment and advantageous location. In the mid-20th century, the city attracted numerous international banks and financial institutions, helping to develop it as a key center for finance and business. This status continues to this day, making Lugano an important player on the international stage."
+        fact: "Lugano became a financial center of Switzerland due to its stable economic environment and advantageous location. In the mid-20th century, the city attracted numerous international banks and financial institutions, helping to develop it as a key center for finance and business. This status continues to this day, making Lugano an important player on the international stage.",
+        image: '/Users/veronika/Documents/GitHub/ios-quiz-app-01/lugano/quiz-images/image4.jpg'
       },
       {
         name: "Education and Science",
@@ -227,7 +231,8 @@ const topics = [
             answer: false,
           },
         ],
-        fact: "The University of Italian Switzerland, located in Lugano, was founded in 1996 and has become an important educational and research center. It offers a variety of programs in Italian and attracts students and scholars from around the world, creating a multicultural educational environment and promoting scientific research in various fields."
+        fact: "The University of Italian Switzerland, located in Lugano, was founded in 1996 and has become an important educational and research center. It offers a variety of programs in Italian and attracts students and scholars from around the world, creating a multicultural educational environment and promoting scientific research in various fields.",
+        image: '/Users/veronika/Documents/GitHub/ios-quiz-app-01/lugano/quiz-images/image5.jpg'
       },
       {
         name: "Tourism and Recreation",
@@ -273,7 +278,8 @@ const topics = [
             answer: true,
           },
         ],
-        fact: 'Lugano attracts tourists with its natural beauty and recreational activities. One popular attraction is the "Parco Ciani," a magnificent park with green lawns, ancient trees, and picturesque pathways. Visitors and locals come here to enjoy walks, picnics, and relaxing days in nature.'
+        fact: 'Lugano attracts tourists with its natural beauty and recreational activities. One popular attraction is the "Parco Ciani," a magnificent park with green lawns, ancient trees, and picturesque pathways. Visitors and locals come here to enjoy walks, picnics, and relaxing days in nature.',
+        image: '/Users/veronika/Documents/GitHub/ios-quiz-app-01/lugano/quiz-images/image6.jpg'
       },
       {
         name: "Transport and Infrastructure",
@@ -319,7 +325,8 @@ const topics = [
             answer: true,
           },
         ],
-        fact: 'In 2010, Lugano opened the "Lugano-Ponte Tresa Railway," connecting the city with nearby regions and improving transportation and accessibility. This project was an important step in the city’s infrastructure development, facilitating ease of movement and supporting economic growth.'
+        fact: 'In 2010, Lugano opened the "Lugano-Ponte Tresa Railway," connecting the city with nearby regions and improving transportation and accessibility. This project was an important step in the city’s infrastructure development, facilitating ease of movement and supporting economic growth.',
+        image: '/Users/veronika/Documents/GitHub/ios-quiz-app-01/lugano/quiz-images/image7.jpg'
       },
       {
         name: "Cuisine and Gastronomy",
@@ -365,7 +372,8 @@ const topics = [
             answer: true,
           },
         ],
-        fact: 'Lugano is known for its gastronomic culture, including the "Ristorante Grotto della Salute," which offers traditional Swiss and Italian dishes. This establishment attracts food enthusiasts with its delicious cheeses, fresh seafood, and homemade pastas, creating a unique culinary experience for locals and tourists alike.'
+        fact: 'Lugano is known for its gastronomic culture, including the "Ristorante Grotto della Salute," which offers traditional Swiss and Italian dishes. This establishment attracts food enthusiasts with its delicious cheeses, fresh seafood, and homemade pastas, creating a unique culinary experience for locals and tourists alike.',
+        image: '/Users/veronika/Documents/GitHub/ios-quiz-app-01/lugano/quiz-images/image8.jpg'
       },
       {
         name: "Sports and Outdoor Activities",
@@ -411,7 +419,8 @@ const topics = [
             answer: false,
           },
         ],
-        fact: 'Lugano actively supports sporting events and offers a variety of opportunities for outdoor activities. The "Lugano Tennis Club" is one of the leading tennis clubs in the region, hosting international tournaments and competitions. The city is also known for its scenic mountain bike trails and ski resorts in the surrounding areas.'
+        fact: 'Lugano actively supports sporting events and offers a variety of opportunities for outdoor activities. The "Lugano Tennis Club" is one of the leading tennis clubs in the region, hosting international tournaments and competitions. The city is also known for its scenic mountain bike trails and ski resorts in the surrounding areas.',
+        image: '/Users/veronika/Documents/GitHub/ios-quiz-app-01/lugano/quiz-images/image9.jpg'
       },
       {
         name: "Life in Lugano",
@@ -457,7 +466,8 @@ const topics = [
             answer: false,
           },
         ],
-        fact: "Lugano is renowned for its high quality of life and is considered one of the most comfortable and pleasant cities in Switzerland. The city offers excellent living conditions due to its high level of safety, developed infrastructure, and picturesque surroundings. Residents appreciate the tranquility, cleanliness, and quality of services, making life in Lugano enjoyable and comfortable."
+        fact: "Lugano is renowned for its high quality of life and is considered one of the most comfortable and pleasant cities in Switzerland. The city offers excellent living conditions due to its high level of safety, developed infrastructure, and picturesque surroundings. Residents appreciate the tranquility, cleanliness, and quality of services, making life in Lugano enjoyable and comfortable.",
+        image: '/Users/veronika/Documents/GitHub/ios-quiz-app-01/lugano/quiz-images/image10.jpg'
       },
   ];
 
