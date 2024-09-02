@@ -1,10 +1,13 @@
 import React from 'react';
 import { Modal, View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import CloseIcon from './CloseBtn';
 
 const AboutModal = ({ isVisible, onBackdropPress }) => {
+
   return (
     <Modal isVisible={isVisible} onBackdropPress={onBackdropPress} style={styles.modal} transparent={true}>
       <View style={styles.modalContent}>
+        <CloseIcon onClose={onBackdropPress} />
         <Text style={styles.aboutModalTitle}>About</Text>
         <ScrollView style={styles.aboutScrollView} contentContainerStyle={{alignItems: "center"}}>
         <Text style={styles.aboutText}>
@@ -15,9 +18,6 @@ const AboutModal = ({ isVisible, onBackdropPress }) => {
           Swiss city!
         </Text>
         </ScrollView>
-        <TouchableOpacity style={styles.btnClose} onPress={onBackdropPress}>
-          <Text style={styles.btnText}>Close</Text>
-        </TouchableOpacity>
       </View>
     </Modal>
   );
@@ -44,7 +44,8 @@ const styles = {
     aboutModalTitle: {
       fontSize: 22,
       fontWeight: 'bold',
-      marginBottom : 20
+      marginBottom : 20,
+      marginTop: 30
     },
     aboutText: {
       fontSize: 20,

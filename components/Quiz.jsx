@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ImageBackground } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ImageBackground, Vibration } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Modal from 'react-native-modal';
 import topics from '../constants/quiz.js';
+import QuizIcon from './QuizIcons.jsx';
 
-const Quiz = ({ topic, difficulty, navigation }) => {
+const Quiz = ({ topic, difficulty, navigation, vibrationEnabled }) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answered, setAnswered] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
@@ -18,22 +19,30 @@ const Quiz = ({ topic, difficulty, navigation }) => {
   const [sessionCount, setSessionCount] = useState(0);
   const [questions, setQuestions] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const [currentTopicIndex, setCurrentTopicIndex] = useState(0);
+  const [currentTopicIndex, setCurrentTopicIndex] = useState(topic ? topics.findIndex(t => t === topic) : 0);
   const [hintUsed, setHintUsed] = useState(false);
   const [hintCount, setHintCount] = useState(0);
+  const [selectedManually, setSelectedManually] = useState(!!topic);
+
+  const coin = 'coin';
+  const time = 'time';
+  const hint = 'hint';
+  const heart = 'heart';
+  const brokenHeart = 'broken-heart';
 
   const timerRef = useRef(null);
 
   useEffect(() => {
+    const currentTopic = selectedManually ? topic : topics[currentTopicIndex];
     if (difficulty === 'Hard') {
       const allQuestions = topics.flatMap(t => t.questions.map(q => ({ ...q, topic: t })));
       setQuestions(shuffleArray(allQuestions));
     } else {
-      setQuestions(topic ? topic.questions.map(q => ({ ...q, topic: topic })) : []);
+      setQuestions(currentTopic ? currentTopic.questions.map(q => ({ ...q, topic: currentTopic })) : []);
     }
     startTimer();
     return () => clearInterval(timerRef.current);
-  }, [difficulty, topic]);
+  }, [difficulty, currentTopicIndex, topic, selectedManually]);
 
   useEffect(() => {
     if (timeLeft <= 0 || finished) {
@@ -51,11 +60,11 @@ const Quiz = ({ topic, difficulty, navigation }) => {
 
   const finishQuiz = async () => {
     if (finished) return;
-
+  
     clearInterval(timerRef.current);
     const totalTime = difficulty === 'Easy' ? 90 : 60;
     const timeTaken = totalTime - timeLeft;
-
+  
     if (difficulty === 'Hard') {
       if (sessionCount === 0) {
         setTotalTimeTaken(timeTaken);
@@ -65,26 +74,26 @@ const Quiz = ({ topic, difficulty, navigation }) => {
     } else {
       setTimeTaken(timeTaken);
     }
-
+  
     setFinished(true);
-
+  
     try {
       const key = difficulty === 'Hard' ? 'HardMode' : 'EasyMode';
       const data = await AsyncStorage.getItem(key);
-      const parsedData = data ? JSON.parse(data) : { score: 0, timeTaken: 0 };
-
-      if (parsedData.score < score) {
-        parsedData.score = score;
-      }
-      if (parsedData.timeTaken === 0 || parsedData.timeTaken > timeTaken) {
-        parsedData.timeTaken = timeTaken;
-      }
-
-      console.log(`${difficulty} mode results saved${topic?.name ? ` for ${topic?.name}` : ''}: score ${score}, time taken ${timeTaken} seconds`);
+      const parsedData = data ? JSON.parse(data) : { score: 0, timeTaken: Infinity };
+  
+      parsedData.score = Math.max(parsedData.score, score);
+      parsedData.timeTaken = parsedData.timeTaken === 0 || timeTaken < parsedData.timeTaken
+        ? timeTaken
+        : parsedData.timeTaken;
+  
+      await AsyncStorage.setItem(key, JSON.stringify(parsedData));
+      console.log(`${difficulty} mode results saved${topic?.name ? ` for ${topic?.name}` : ''}: score ${parsedData.score}, time taken ${parsedData.timeTaken} seconds`);
     } catch (error) {
       console.error('Error saving data to async storage:', error);
     }
-  };
+  };  
+  
 
   const handleAnswer = (answer) => {
     if (answered || finished) return;
@@ -104,16 +113,22 @@ const Quiz = ({ topic, difficulty, navigation }) => {
         setTotalTimeTaken(prevTotalTimeTaken => prevTotalTimeTaken + (currentTimer - 60));
         setSessionCount(prevSessionCount => prevSessionCount + 1);
       }
-
     } else {
       if (difficulty === 'Hard') {
         setIncorrectAnswers(prev => {
           const newCount = Math.max(prev - 1, 0);
           if (newCount === 0) {
             finishQuiz();
+            setTimeout(() => {
+              finishQuiz();
+            }, 2000);
           }
           return newCount;
         });
+      }
+
+      if (vibrationEnabled) {
+        Vibration.vibrate(500);
       }
     }
 
@@ -152,6 +167,7 @@ const Quiz = ({ topic, difficulty, navigation }) => {
     setTotalTimeTaken(0);
     setTimeTaken(0);
     setHintUsed(false);
+    setHintCount(0);
     setSessionCount(0);
     setIncorrectAnswers(3);
     startTimer();
@@ -159,8 +175,14 @@ const Quiz = ({ topic, difficulty, navigation }) => {
 
   const handleNextTopic = () => {
     clearInterval(timerRef.current);
+
     const nextTopicIndex = (currentTopicIndex + 1) % topics.length;
     setCurrentTopicIndex(nextTopicIndex);
+    setSelectedManually(false);
+
+    const nextTopic = topics[nextTopicIndex];
+    setQuestions(nextTopic.questions.map(q => ({ ...q, topic: nextTopic })));
+
     setFinished(false);
     setCurrentQuestion(0);
     setTimeLeft(difficulty === 'Easy' ? 90 : 60);
@@ -168,6 +190,7 @@ const Quiz = ({ topic, difficulty, navigation }) => {
     setTotalTimeTaken(0);
     setTimeTaken(0);
     setHintUsed(false);
+    setHintCount(0);
     setSessionCount(0);
     setIncorrectAnswers(3);
     startTimer();
@@ -191,214 +214,136 @@ const Quiz = ({ topic, difficulty, navigation }) => {
     return styles.defaultAnswer;
   };
 
+  const renderHearts = () => {
+    const hearts = [];
+    const heartCount = Math.min(3, incorrectAnswers);
+    const brokenHeartCount = 3 - heartCount;
+
+    for (let i = 0; i < heartCount; i++) {
+      hearts.push(<QuizIcon key={`heart-${i}`} type={heart} />);
+    }
+    for (let i = 0; i < brokenHeartCount; i++) {
+      hearts.push(<QuizIcon key={`broken-heart-${i}`} type={brokenHeart} />);
+    }
+    return hearts;
+  };
+
+  const currentTopic = selectedManually ? topic : topics[currentTopicIndex];
+  const backgroundImage = difficulty === 'Hard' ? require('../quiz-images/image-hard.jpg') : currentTopic.image;
+  const displayTopicName = difficulty === 'Hard' ? 'Quiz' : currentTopic.name;
+
   return (
-    <View style={{width: "100%", height: "100%"}}>
-    {difficulty === 'Easy' ? (
+    <View style={{ width: "100%", height: "100%" }}>
       <ImageBackground
-        source={{uri: topic.image}}
+        source={backgroundImage}
         style={styles.backgroundImage}
         resizeMode="cover"
       >
         <View style={styles.overlay}>
-    <View style={styles.container}>
-      <Text style={styles.title}>{difficulty === 'Easy' ? topic?.name : 'Quiz'}</Text>
-      {!finished && (
-        <View style={{ width: "100%" }}>
-          {difficulty === 'Hard' && (
-            <Text style={styles.chances}>Chances Remaining: {incorrectAnswers}</Text>
-          )}
-          <View style={styles.resultsPanel}>
-            <Text style={styles.score}>Score: {score}</Text>
-            <Text style={styles.timer}>Time left: {Math.floor(timeLeft / 60)}:{('0' + (timeLeft % 60)).slice(-2)}</Text>
-            <TouchableOpacity
-              style={[
-                styles.hintButton,
-                (score <= 0 || hintUsed || (difficulty === 'Easy' && hintCount >= 2)) && styles.disabledHint,
-              ]}
-              onPress={handleHint}
-              disabled={score <= 0 || hintUsed || (difficulty === 'Easy' && hintCount >= 2)}
-            >
-              <Text style={styles.hintText}>Hint</Text>
-            </TouchableOpacity>
+          <View style={styles.container}>
+            <Text style={styles.title}>{displayTopicName}</Text>
+            {!finished && (
+              <View style={{ width: "100%" }}>
+                {difficulty === 'Hard' && (
+                  <View style={styles.heartsPanel}>
+                    {renderHearts()}
+                  </View>
+                )}
+                <View style={styles.resultsPanel}>
+                  <Text style={styles.score}><QuizIcon type={coin} />  {score}</Text>
+                  <Text style={styles.timer}>
+                    <QuizIcon type={time} />  {Math.floor(timeLeft / 60)}:{('0' + (timeLeft % 60)).slice(-2)}
+                  </Text>
+                  <TouchableOpacity
+                    style={[
+                      styles.hintButton,
+                      (score <= 0 || hintUsed || (difficulty === 'Easy' && hintCount >= 2)) && styles.disabledHint,
+                    ]}
+                    onPress={handleHint}
+                    disabled={score <= 0 || hintUsed || (difficulty === 'Easy' && hintCount >= 2)}
+                  >
+                    <QuizIcon type={hint} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+            {finished ? (
+              <View style={styles.finish}>
+                <Text style={styles.finishText}>Quiz finished!</Text>
+                <Text style={styles.score}><QuizIcon type={coin} /> Final Score: {score}</Text>
+                <Text style={difficulty === 'Hard' ? styles.timeTakenHard : styles.timeTaken}>{difficulty === 'Hard'  ? ''  : <> <QuizIcon type={time} /> {' '} Time taken: {timeTaken} seconds </>}</Text>
+                <TouchableOpacity style={styles.tryAgain} onPress={handleTryAgain}>
+                  <Text style={styles.tryAgainText}>Try again</Text>
+                </TouchableOpacity>
+                {difficulty === 'Easy' && (
+                  <View style={styles.easyModeBtns}>
+                    <TouchableOpacity style={styles.nextTopic} onPress={handleNextTopic}>
+                      <Text style={styles.nextTopicText}>Next Topic</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.showFact}
+                      onPress={() => setModalVisible(true)}
+                    >
+                      <Text style={styles.showFactText}>Topic Fact</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+                <TouchableOpacity style={styles.backToMenu} onPress={() => navigation.navigate('MainMenu')}>
+                  <Text style={styles.backToMenuText}>Menu</Text>
+                </TouchableOpacity>
+                <Modal
+                  transparent={true}
+                  animationType="slide"
+                  visible={modalVisible}
+                  onRequestClose={() => setModalVisible(false)}
+                >
+                  <View style={styles.modalContainer}>
+                    <View style={styles.modalContent}>
+                      <Text style={styles.modalText}>{topic?.fact || 'No fact available'}</Text>
+                      <TouchableOpacity
+                        style={styles.modalButton}
+                        onPress={() => setModalVisible(false)}
+                      >
+                        <Text style={styles.modalButtonText}>Close</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </Modal>
+              </View>
+            ) : (
+              <>
+                {questions.length > 0 ? (
+                  <>
+                    <Text style={difficulty === 'Easy' ? styles.question : styles.questionHard}>
+                      {questions[currentQuestion]?.question}
+                    </Text>
+                    <View style={styles.answers}>
+                      <TouchableOpacity
+                        style={[styles.answer, getAnswerStyle(true)]}
+                        onPress={() => handleAnswer(true)}
+                      >
+                        <Text style={styles.answerText}>True</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.answer, getAnswerStyle(false)]}
+                        onPress={() => handleAnswer(false)}
+                      >
+                        <Text style={styles.answerText}>False</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                ) : (
+                  <Text style={difficulty === 'Easy' ? styles.question : styles.questionHard}>No questions available</Text>
+                )}
+              </>
+            )}
           </View>
         </View>
-      )}
-      {finished ? (
-        <View style={styles.finish}>
-          <Text style={styles.finishText}>Quiz finished!</Text>
-          <Text style={styles.score}>Final Score: {score}</Text>
-          <Text style={styles.timeTaken}>Total Time taken: {difficulty === 'Hard' ? totalTimeTaken : timeTaken} seconds</Text>
-          <TouchableOpacity style={styles.tryAgain} onPress={handleTryAgain}>
-            <Text style={styles.tryAgainText}>Try again</Text>
-          </TouchableOpacity>
-          {difficulty === 'Easy' && (
-            <View style={styles.easyModeBtns}>
-              <TouchableOpacity style={styles.nextTopic} onPress={handleNextTopic}>
-                <Text style={styles.nextTopicText}>Next Topic</Text>
-              </TouchableOpacity>          
-              <TouchableOpacity
-                style={styles.showFact}
-                onPress={() => setModalVisible(true)}
-              >
-                <Text style={styles.showFactText}>Topic Fact</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-          <TouchableOpacity style={styles.backToMenu} onPress={() => navigation.navigate('MainMenu')}>
-            <Text style={styles.backToMenuText}>Menu</Text>
-          </TouchableOpacity>
-          <Modal
-            transparent={true}
-            animationType="slide"
-            visible={modalVisible}
-            onRequestClose={() => setModalVisible(false)}
-          >
-            <View style={styles.modalContainer}>
-              <View style={styles.modalContent}>
-                <Text style={styles.modalText}>{topic?.fact || 'No fact available'}</Text>
-                <TouchableOpacity
-                  style={styles.modalButton}
-                  onPress={() => setModalVisible(false)}
-                >
-                  <Text style={styles.modalButtonText}>Close</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Modal>
-        </View>
-      ) : (
-        <>
-          {questions.length > 0 ? (
-            <>
-              <Text style={styles.question}>{questions[currentQuestion]?.question}</Text>
-              <View style={styles.answers}>
-                <TouchableOpacity
-                  style={[styles.answer, getAnswerStyle(true)]}
-                  onPress={() => handleAnswer(true)}
-                >
-                  <Text style={styles.answerText}>True</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.answer, getAnswerStyle(false)]}
-                  onPress={() => handleAnswer(false)}
-                >
-                  <Text style={styles.answerText}>False</Text>
-                </TouchableOpacity>
-              </View>
-            </>
-          ) : (
-            <Text style={styles.question}>No questions available</Text>
-          )}
-        </>
-      )}
-    </View>
-    </View>
       </ImageBackground>
-    ) : (
-      <ImageBackground
-        source={{uri: '/Users/veronika/Documents/GitHub/ios-quiz-app-01/lugano/quiz-images/image-hard.jpg'}}
-        style={styles.backgroundImage}
-        resizeMode="cover"
-      >
-        <View style={styles.overlay}>
-      <View style={styles.container}>
-      <Text style={styles.title}>{difficulty === 'Easy' ? topic?.name : 'Quiz'}</Text>
-      {!finished && (
-        <View style={{ width: "100%" }}>
-          {difficulty === 'Hard' && (
-            <Text style={styles.chances}>Chances Remaining: {incorrectAnswers}</Text>
-          )}
-          <View style={styles.resultsPanel}>
-            <Text style={styles.score}>Score: {score}</Text>
-            <Text style={styles.timer}>Time left: {Math.floor(timeLeft / 60)}:{('0' + (timeLeft % 60)).slice(-2)}</Text>
-            <TouchableOpacity
-              style={[
-                styles.hintButton,
-                (score <= 0 || hintUsed || (difficulty === 'Easy' && hintCount >= 2)) && styles.disabledHint,
-              ]}
-              onPress={handleHint}
-              disabled={score <= 0 || hintUsed || (difficulty === 'Easy' && hintCount >= 2)}
-            >
-              <Text style={styles.hintText}>Hint</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-      {finished ? (
-        <View style={styles.finish}>
-          <Text style={styles.finishText}>Quiz finished!</Text>
-          <Text style={styles.score}>Final Score: {score}</Text>
-          <Text style={styles.timeTakenHard}>Total Time taken: {difficulty === 'Hard' ? totalTimeTaken : timeTaken} seconds</Text>
-          <TouchableOpacity style={styles.tryAgain} onPress={handleTryAgain}>
-            <Text style={styles.tryAgainText}>Try again</Text>
-          </TouchableOpacity>
-          {difficulty === 'Easy' && (
-            <View style={styles.easyModeBtns}>
-              <TouchableOpacity style={styles.nextTopic} onPress={handleNextTopic}>
-                <Text style={styles.nextTopicText}>Next Topic</Text>
-              </TouchableOpacity>          
-              <TouchableOpacity
-                style={styles.showFact}
-                onPress={() => setModalVisible(true)}
-              >
-                <Text style={styles.showFactText}>Topic Fact</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-          <TouchableOpacity style={styles.backToMenu} onPress={() => navigation.navigate('MainMenu')}>
-            <Text style={styles.backToMenuText}>Menu</Text>
-          </TouchableOpacity>
-          <Modal
-            transparent={true}
-            animationType="slide"
-            visible={modalVisible}
-            onRequestClose={() => setModalVisible(false)}
-          >
-            <View style={styles.modalContainer}>
-              <View style={styles.modalContent}>
-                <Text style={styles.modalText}>{topic?.fact || 'No fact available'}</Text>
-                <TouchableOpacity
-                  style={styles.modalButton}
-                  onPress={() => setModalVisible(false)}
-                >
-                  <Text style={styles.modalButtonText}>Close</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Modal>
-        </View>
-      ) : (
-        <>
-          {questions.length > 0 ? (
-            <>
-              <Text style={styles.questionHard}>{questions[currentQuestion]?.question}</Text>
-              <View style={styles.answers}>
-                <TouchableOpacity
-                  style={[styles.answer, getAnswerStyle(true)]}
-                  onPress={() => handleAnswer(true)}
-                >
-                  <Text style={styles.answerText}>True</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.answer, getAnswerStyle(false)]}
-                  onPress={() => handleAnswer(false)}
-                >
-                  <Text style={styles.answerText}>False</Text>
-                </TouchableOpacity>
-              </View>
-            </>
-          ) : (
-            <Text style={styles.questionHard}>No questions available</Text>
-          )}
-        </>
-      )}
-    </View>
-    </View>
-    </ImageBackground>
-    )}
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   backgroundImage: {
@@ -449,16 +394,16 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   hintButton: {
-    backgroundColor: '#f0ad4e',
+    backgroundColor: 'white',
     padding: 10,
-    borderRadius: 5,
+    borderRadius: 100,
   },
   hintText: {
     color: '#fff',
     fontWeight: 'bold',
   },
   disabledHint: {
-    backgroundColor: '#cccccc',
+    backgroundColor: 'grey',
   },
   question: {
     fontSize: 18,
@@ -502,6 +447,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     marginBottom: 150,
     color: 'white',
+    alignSelf: "center"
   },
   tryAgain: {
     backgroundColor: '#4CAF50',
@@ -585,7 +531,7 @@ const styles = StyleSheet.create({
   timeTaken: {
     color: "white",
     fontSize: 18,
-    marginBottom: 40
+    marginBottom: 20
   },
   timeTakenHard: {
     color: "white",
@@ -595,8 +541,12 @@ const styles = StyleSheet.create({
   questionHard: {
     fontSize: 18,
     color: 'white',
-    height: 300
+    height: 280
   },
+  heartsPanel: {
+    flexDirection: "row",
+    marginBottom: 10
+  }
 });
 
 export default Quiz;
