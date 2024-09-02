@@ -1,10 +1,19 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Modal, View, ScrollView, Text } from 'react-native';
+import CloseIcon from './CloseBtn';
 
-const ResultsModal = ({ isVisible, onBackdropPress, easyModeResults, hardModeResults }) => {
+const ResultsModal = ({ isVisible, onClose, easyModeResults, hardModeResults, loadResults }) => {
+
+  useEffect(() => {
+    if (isVisible) {
+      loadResults();
+    }
+  }, [isVisible, loadResults]);
+
   return (
-    <Modal isVisible={isVisible} onBackdropPress={onBackdropPress} style={styles.modal} transparent={true}>
+    <Modal isVisible={isVisible} onBackdropPress={onClose} style={styles.modal} transparent={true}>
       <View style={styles.modalContent}>
+        <CloseIcon onClose={onClose} />
         <ScrollView>
           <View style={styles.resultsContainer}>
             <View style={styles.column}>
@@ -35,6 +44,7 @@ const ResultsModal = ({ isVisible, onBackdropPress, easyModeResults, hardModeRes
     </Modal>
   );
 };
+
 
 const styles = {
     modal: {

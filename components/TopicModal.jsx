@@ -1,7 +1,9 @@
 import React from 'react';
 import { Modal, View, ScrollView, TouchableOpacity, Text } from 'react-native';
+import CloseIcon from './CloseBtn';
 
 const TopicModal = ({ topics, onClose, onSelect }) => {
+
   return (
     <Modal
       onBackdropPress={onClose}
@@ -10,7 +12,8 @@ const TopicModal = ({ topics, onClose, onSelect }) => {
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          <ScrollView>
+          <CloseIcon onClose={onClose} />
+          <ScrollView style={{marginTop: 30}}>
             {topics.map((topic, index) => (
               <TouchableOpacity key={index} style={styles.btn} onPress={() => onSelect(topic)}>
                 <Text style={styles.btnText}>{topic.name}</Text>
